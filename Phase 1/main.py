@@ -1,7 +1,6 @@
 import re
 import instfile
 file = open('input.sic','r')
-print()
 filecontent = []
 bufferindex = 0
 tokenval = 0
@@ -11,6 +10,22 @@ locctr = 0
 lookahead = ''
 startLine = True
 symtable = []
+inst=0
+Xbit4set = 0x800000
+Bbit4set = 0x400000
+Pbit4set = 0x200000
+Ebit4set = 0x100000
+
+Nbitset = 2
+Ibitset = 1
+
+Xbit3set = 0x8000
+Bbit3set = 0x4000
+Pbit3set = 0x2000
+Ebit3set = 0x1000
+objCode= True
+
+
 class Entry:
     def __init__(self,string,token,attribute):
         self.string=string
@@ -49,17 +64,22 @@ def match(token):
 
 
 def parse():
-    global lookahead
-    lookahead = lexan()
     header()
     body()
     tail()
 
 
 def header():
+    global lookahead,tokenval,locctr,programAddress,programSize,progName
+    lookahead = lexan()
+    tok = tokenval
     match('ID')
     match('START')
+    programAddress= symtable[tok].att=locctr = tokenval
     match('NUM')
+    progName = symtable[tok].string
+    if pass1or2==2 and objCode:
+        print('H',progName,'{:06X} {:06X}'.format(programAddress,programSize))
 
 
 
@@ -88,12 +108,43 @@ def rest1():
 
 
 def stmt():
+    global startLine,locctr,inst
+    startLine = False
+    if pass1or2==2:
+        inst= symtable[tokenval].att << 16
+    locctr+=3
     match('F3')
     rest3()
+    if pass1or2==2:
+        if objCode:
+            print('T{:06X} {:02X} {:06X}'.format(locctr-3,3,inst))
+        else:
+            print('{:06X}'.format(inst))
 
 def data():
-    if lookahead in ["WORD","RESW", "RESB"]:
-        match(lookahead)
+    global locctr
+    if lookahead=="WORD":
+        locctr+=3
+        match("WORD")
+        if pass1or2==2:
+            if objCode:
+                print('T{:06X} {:02X} {:06X}'.format(locctr-3,3,tokenval))
+            else:
+                print('T{:06X}'.format(tokenval))
+        match('NUM')
+    elif lookahead=='RESW':
+        locctr+=3*tokenval
+        match('RESW')
+        if pass1or2==2 and not objCode:
+            for i in range(tokenval):
+                print('000000')
+        match("NUM")
+    elif lookahead == "RESB":
+        match("RESB")
+        locctr+=tokenval
+        if pass1or2==2 and not objCode:
+            for i in range(tokenval):
+                print('00')
         match('NUM')
     elif lookahead == 'BYTE':
         match('BYTE')
@@ -102,7 +153,10 @@ def data():
         error('data erorr')
 
 def rest3():
+    global inst
+    
     if lookahead == 'ID':
+        inst += symtable[tokenval].att
         match('ID')
         index()
     elif lookahead=='END':
@@ -111,28 +165,51 @@ def rest3():
         error('rest3 error')
 
 def rest2():
+    global locctr
+    size = int(len(symtable[tokenval].att)/2)
+    locctr+=size
     if lookahead=='STRING':
+        if pass1or2==2:
+            if objCode:
+                print('T{:06X} {:02X}'.format(locctr-size,size,hex),symtable[tokenval].att)
+            else:
+                print(symtable[tokenval].att)
         match('STRING')
     elif lookahead=='HEX':
+        if pass1or2==2:
+            if objCode:
+                print('T{:06X} {:02X}'.format(locctr-size,size,hex),symtable[tokenval].att)
+            else:
+                print(symtable[tokenval].att)
         match('HEX')
     else:
         error('rest2 erorr')
 
 
 def index():
-    global bufferindex, symtable, tokenval
+    global bufferindex, symtable, tokenval,inst
     if lookahead == ',':
         match(',')
         if symtable[tokenval].att!=1:
             error('index register should be X')
+        else:
+            inst+=Xbit3set
         match("REG")
         return True
     return False
 
 
 def tail():
+    global programAddress,programSize,locctr
     match('END')
+    if pass1or2==2 and objCode:
+        print('E{:06X}'.format(symtable[tokenval].att))
     match('ID')
+    programSize = locctr-programAddress
+    # if pass1or2==2:
+    #     for i in range(symtable.__len__()):
+    #         if symtable[i].token=='ID':
+    #             print(symtable[i].string+' '+str(hex(symtable[i].att)))
 
 
 def lexan():
@@ -159,7 +236,7 @@ def lexan():
         # del filecontent[bufferindex]
         bufferindex = bufferindex + 1
         return ('NUM')
-    elif filecontent[bufferindex] in ['+', '#', ',']:
+    elif filecontent[bufferindex] in ['+', '#', ',','@']:
         c = filecontent[bufferindex]
         # del filecontent[bufferindex]
         bufferindex = bufferindex + 1
@@ -176,7 +253,7 @@ def lexan():
                     bytestring += ' '
             bufferindex += 1
             bytestringvalue = "".join("%02X" % ord(c) for c in bytestring)
-            bytestring = '_' + bytestring
+            bytestring = '1_' + bytestring
             p = lookup(bytestring)
             if p == -1:
                 p = insert(bytestring, 'STRING', bytestringvalue)  # should we deal with literals?
@@ -191,7 +268,7 @@ def lexan():
                     bytestring += ' '
             bufferindex += 1
             bytestringvalue = "".join("%02X" % ord(c) for c in bytestring)
-            bytestring = '_' + bytestring
+            bytestring = '2_' + bytestring
             p = lookup(bytestring)
             if p == -1:
                 p = insert(bytestring, 'STRING', bytestringvalue)  # should we deal with literals?
@@ -261,7 +338,6 @@ def main():
 
     file.close()
 
-print('1')
 main()
 
 
