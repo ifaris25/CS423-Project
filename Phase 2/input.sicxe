@@ -1,0 +1,4 @@
+prog start 0X100
+    base xx
+xx  word 5
+end prog

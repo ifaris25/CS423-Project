@@ -1,5 +1,5 @@
 prog start 0X100
-    add xx
+    lda xx
     sta yy,x
 tt byte c'abcd'
 zz byte x'abcd'

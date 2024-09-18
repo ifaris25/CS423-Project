@@ -1,0 +1,9 @@
+prog start 0X100
+    +add xx
+    sta yy,x
+tt byte c'abcd'
+zz byte x'abcd'
+xx  word 5
+yy  resb 2
+xax  word 4
+end prog
