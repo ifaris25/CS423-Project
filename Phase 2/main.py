@@ -71,7 +71,6 @@ def match(token):
         error("match error")
 
 
-
 def parse():
     # parse ---> header body  tail
     header()
@@ -95,14 +94,18 @@ def header():
         print('H'+symtable[tok].string+' {:06X} {:06X}'.format(startAddress,progSize))
     
 
-
 def body():
     # body ---> id rest1 body | stmt body | &
-    
+    global baseValue
     if lookahead=='ID':
         match("ID")
         rest1()
         body()
+    elif lookahead=='BASE':
+        match('BASE')
+        baseValue = symtable[tokenval].att
+        match('NUM')
+        
     elif lookahead in ['F1','F2','F3','+']:
         stmt()
         body()
@@ -184,38 +187,46 @@ def stmt():
         
 def rest5(ex):
     global inst
-    if ex:
-        inst+=Ebit4set
-    if lookahead=='#':
+    if pass1or2==2:
         if ex:
-            inst+=Ibit4set
+            inst+=Ebit4set
         else:
-            inst+=Ibit3set
+            inst+=Ebit4set
+            
+    if lookahead=='#':
+        if pass1or2==2:
+            if ex:
+                inst+=Ibit4set
+            else:
+                inst+=Ibit3set
         match('#')
         rest6()
     elif lookahead=='@':
-        if ex:
-            inst+=Nbit4set
-        else:
-            inst+=Nbit3set
+        if pass1or2==2:
+            if ex:
+                inst+=Nbit4set
+            else:
+                inst+=Nbit3set
         match('@')
         rest6()
     elif lookahead=='ID':
         inst+=symtable[tokenval].att
-        if ex:
-            inst+=Nbit4set
-            inst+=Ibit4set
-        else:
-            inst+=Nbit3set
-            inst+=Ibit3set
+        if parse==2:
+            if ex:
+                inst+=Nbit4set
+                inst+=Ibit4set
+            else:
+                inst+=Nbit3set
+                inst+=Ibit3set
         match('ID')
         index(ex)
     elif lookahead=='NUM':
         inst+=tokenval
-        if ex:
-            inst+=Ibit4set
-        else:
-            inst+=Ibit3set
+        if pass1or2==2:
+            if ex:
+                inst+=Ibit4set
+            else:
+                inst+=Ibit3set
         match('NUM')
         index(ex)
     else:
@@ -228,10 +239,11 @@ def index(ex=False):
         if symtable[tokenval].att!=1:
             error('index register should be X')
         else:
-            if ex:
-                inst+=Xbit4set
-            else:
-                inst+=Xbit3set
+            if pass1or2==2:
+                if ex:
+                    inst+=Xbit4set
+                else:
+                    inst+=Xbit3set
         match("REG")
         return True
     return False
@@ -240,10 +252,12 @@ def index(ex=False):
 def rest6():
     global inst
     if lookahead=='ID':
-        inst+=symtable[tokenval].att
+        if pass1or2==2:
+            inst+=symtable[tokenval].att
         match("ID")
     elif lookahead=='NUM':
-        inst+=tokenval
+        if pass1or2==2:
+            inst+=tokenval
         match("NUM")
     else:
         error("rest6 error")
