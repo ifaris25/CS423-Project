@@ -1,0 +1,9 @@
+prog start 0x0
+    base xx
+    +add xx
+    add zz
+    sta xx, x
+xx  word 5
+yy  resb 2
+zz  word 4
+    end prog

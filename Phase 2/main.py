@@ -1,6 +1,6 @@
 import re
 import instfile
-file = open('input.sicxe','r')
+file = open('input.sic','r')
 filecontent = []
 bufferindex = 0
 tokenval = 0
@@ -96,15 +96,19 @@ def header():
 
 def body():
     # body ---> id rest1 body | stmt body | &
-    global baseValue
+    global baseValue,startLine
     if lookahead=='ID':
         match("ID")
         rest1()
         body()
     elif lookahead=='BASE':
+        startLine = False
         match('BASE')
-        baseValue = symtable[tokenval].att
-        match('NUM')
+        if pass1or2==2:
+            baseValue = symtable[tokenval].att
+            print(baseValue)
+        match('ID')
+        body()
         
     elif lookahead in ['F1','F2','F3','+']:
         stmt()
@@ -131,6 +135,7 @@ def stmt():
     global locctr,inst,startLine
     startLine=False
     if lookahead=='F1':
+        locctr += 1
         if pass1or2==2:
             inst=symtable[tokenval].att
             if objCode:
@@ -159,7 +164,7 @@ def stmt():
     elif lookahead=='F3':
         locctr+=3
         if pass1or2==2:
-            inst=symtable[tokenval].att <<18 # to get the opcode
+            inst=symtable[tokenval].att <<16 # to get the opcode
         match('F3')
         rest5(False)
         if pass1or2==2:
@@ -173,7 +178,8 @@ def stmt():
         locctr+=4
         match('+')
         if pass1or2==2:
-            inst=symtable[tokenval].att<<26
+            inst=symtable[tokenval].att<<24
+            inst += Ebit4set
         match('F3')
         rest5(True)
         if pass1or2==2:
@@ -186,13 +192,9 @@ def stmt():
         error('stmt error')
         
 def rest5(ex):
-    global inst
-    if pass1or2==2:
-        if ex:
-            inst+=Ebit4set
-        else:
-            inst+=Ebit4set
-            
+    # Rest5 --> # Rest6 
+    global inst,baseValue
+
     if lookahead=='#':
         if pass1or2==2:
             if ex:
@@ -200,7 +202,10 @@ def rest5(ex):
             else:
                 inst+=Ibit3set
         match('#')
-        rest6()
+        rest6(ex)
+        
+        
+        
     elif lookahead=='@':
         if pass1or2==2:
             if ex:
@@ -208,31 +213,67 @@ def rest5(ex):
             else:
                 inst+=Nbit3set
         match('@')
-        rest6()
+        rest6(ex)
+        
+        
     elif lookahead=='ID':
-        inst+=symtable[tokenval].att
-        if parse==2:
+        if pass1or2 == 2:
             if ex:
                 inst+=Nbit4set
                 inst+=Ibit4set
+                inst+=symtable[tokenval].att # it is in format 4
             else:
                 inst+=Nbit3set
                 inst+=Ibit3set
+                disp = symtable[tokenval].att - locctr # Calc PC
+                if -2048<=disp<=2047:
+                    inst+=Pbit3set
+                    inst+=(disp&0xfff) # ------------------- check
+                elif baseValue != -1:
+                    disp = symtable[tokenval].att - baseValue  # Calc BASE
+                    if 0<=disp<=4095:
+                        inst += Bbit3set
+                        inst += disp
+                    else:
+                        error("BASE can not handle the value")
+                else:
+                    error("No BASE")
+                    
         match('ID')
         index(ex)
+        
+        
     elif lookahead=='NUM':
-        inst+=tokenval
-        if pass1or2==2:
+        if pass1or2 == 2:
             if ex:
-                inst+=Ibit4set
+                inst += tokenval
+                inst+= Ibit4set
+                inst += Nbit4set
             else:
-                inst+=Ibit3set
+                inst += Ibit3set
+                inst += Nbit3set
+                disp = tokenval - locctr  # Calc PC
+                if 0<disp<4095:
+                    inst += (tokenval & 0xFFF)
+                elif -2048 <= disp <= 2047:
+                    inst += Pbit3set
+                    inst += (disp & 0xFFF)
+                elif baseValue != -1:
+                    disp = tokenval - baseValue  # Calc BASE
+                    if 0 <= disp <= 4095:
+                        inst += Bbit3set
+                        inst += (disp & 0xFFF)
+                    else:
+                        error('BASE can not handle the value')
+                else:
+                    error("No BASE")
+
         match('NUM')
         index(ex)
     else:
         error('rest 5 error')
-        
-def index(ex=False):
+
+def index(ex):
     global inst
     if lookahead == ',':
         match(',')
@@ -249,15 +290,50 @@ def index(ex=False):
     return False
         
         
-def rest6():
-    global inst
+def rest6(ex):
+    global inst,baseValue
     if lookahead=='ID':
-        if pass1or2==2:
-            inst+=symtable[tokenval].att
+        if pass1or2 == 2:
+            if ex:
+                inst += symtable[tokenval].att # it is in format 4
+            else:
+                disp = symtable[tokenval].att - locctr
+                if -2048<=disp<=2047:
+                    inst+=Pbit3set
+                    inst += (disp & 0xFFF)
+                elif baseValue!=-1:
+                    disp = symtable[tokenval].att - baseValue
+                    if 0<=disp<=4095:
+                        inst+= (disp & 0xFFF)
+                        inst+=Bbit3set
+                    else:
+                        error('BASE can not handle the value')
+                else:
+                    error("No BASE")
+                
         match("ID")
     elif lookahead=='NUM':
-        if pass1or2==2:
-            inst+=tokenval
+        if pass1or2 == 2:
+            if ex:
+                inst += tokenval
+                inst += Ibit4set
+                inst += Nbit4set
+            else:
+                inst += Ibit3set
+                inst += Nbit3set
+                disp = tokenval - locctr
+                if 0 < tokenval < 4095:
+                    inst += (tokenval & 0xFFF)
+                elif -2048 <= disp <= 2047:
+                    inst += Pbit3set
+                    inst += (disp & 0xFFF)
+                elif baseValue!=-1:
+                    disp = tokenval-baseValue
+                    if 0 <= disp <= 4095:
+                        inst+= (disp & 0xFFF)
+                        inst += Bbit3set
+                else:
+                    error("No BASE")
         match("NUM")
     else:
         error("rest6 error")
@@ -277,12 +353,12 @@ def rest4():
 
 def tail():
     # end id
-    global programAddress,progSize,locctr
+    global startAddress,progSize,locctr
     match('END')
     if pass1or2==2 and objCode:
         print('E{:06X}'.format(symtable[tokenval].att))
     match('ID')
-    progSize= locctr-programAddress
+    progSize= locctr-startAddress
 
 
 
@@ -468,6 +544,3 @@ def main():
     file.close()
 
 main()
-
-
-

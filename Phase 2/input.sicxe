@@ -1,9 +1,0 @@
-prog START 0X100
-    +ADD xx
-    STA yy,x
-tt BYTE c'abcd'
-zz BYTE x'abcd'
-xx WORD 5
-yy RESB 2
-xa WORD 4
-END prog
