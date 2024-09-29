@@ -17,7 +17,7 @@ def check(hex_str):
     print(f"{op:<10} {n:<3} {i:<3} {x:<3} {b:<3} {p:<3} {e:<3} {disp_bits}")  
 
 
-check('0FA000')
+check('0FA0BD')
 
 '''
 prog start 0x0 

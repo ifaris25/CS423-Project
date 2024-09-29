@@ -106,11 +106,11 @@ def body():
         match('BASE')
         if pass1or2==2:
             baseValue = symtable[tokenval].att
-            print(baseValue)
+            # print(baseValue)
         match('ID')
         body()
         
-    elif lookahead in ['F1','F2','F3','+']:
+    elif lookahead in ['F1','F2','F3','+','F5']:
         stmt()
         body()
     elif lookahead=='END':
@@ -182,6 +182,28 @@ def stmt():
             inst += Ebit4set
         match('F3')
         rest5(True)
+        if pass1or2==2:
+            if objCode:
+                print('T{:06X} {:02X} {:08X}'.format(locctr-4,4,inst))
+            else:
+                print('{:08X}'.format(inst))
+    
+    elif lookahead=='F5':
+        locctr+=4
+        if pass1or2==2:
+            inst=symtable[tokenval].att<<24
+        match('F5')
+        if pass1or2==2:
+            inst+=symtable[tokenval].att<<16
+        match('REG')
+        match(',')
+        if pass1or2==2:
+            inst+=symtable[tokenval].att<<8
+        match('REG')
+        match(',')
+        if pass1or2==2:
+            inst+=symtable[tokenval].att
+        match('REG')
         if pass1or2==2:
             if objCode:
                 print('T{:06X} {:02X} {:08X}'.format(locctr-4,4,inst))
@@ -374,11 +396,11 @@ def data():
                 print('T{:06X}'.format(tokenval))
         match('NUM')
     elif lookahead=='RESW':
-        locctr+=3*tokenval
         match('RESW')
         if pass1or2==2 and not objCode:
             for i in range(tokenval):
                 print('000000')
+        locctr+=3*tokenval
         match("NUM")
     elif lookahead == "RESB":
         match("RESB")

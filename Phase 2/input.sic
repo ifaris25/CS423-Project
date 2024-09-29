@@ -1,8 +1,9 @@
 prog start 0x0
     base xx
-    +add xx
+    +add #xx
     add zz
     sta xx, x
+    tt resw 1000
 xx  word 5
 yy  resb 2
 zz  word 4
