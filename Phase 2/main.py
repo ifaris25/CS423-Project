@@ -34,7 +34,7 @@ Ibitset = 1
 
 objCode= True
 
-reLoc=[]
+reLoc=[] 
 
 class Entry:
     def __init__(self,string,token,attribute):
