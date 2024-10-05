@@ -34,6 +34,7 @@ Ibitset = 1
 
 objCode= True
 
+reLoc=[]
 
 class Entry:
     def __init__(self,string,token,attribute):
@@ -73,9 +74,14 @@ def match(token):
 
 def parse():
     # parse ---> header body  tail
+    global reLoc
     header()
     body()
+    if pass1or2==2:
+        for list in reLoc:
+            print('M{:06} 05'.format(list))
     tail()
+        
     
   
 
@@ -132,7 +138,7 @@ def rest1():
 
 def stmt():
     # stmt ---> F1 | F2 Reg rest4 | F3 Rest5 | + F3 Rest5   
-    global locctr,inst,startLine
+    global locctr,inst,startLine,reLoc
     startLine=False
     if lookahead=='F1':
         locctr += 1
@@ -180,6 +186,7 @@ def stmt():
         if pass1or2==2:
             inst=symtable[tokenval].att<<24
             inst += Ebit4set
+            reLoc.append(locctr-3)   ### check --------------------------------
         match('F3')
         rest5(True)
         if pass1or2==2:
@@ -188,6 +195,8 @@ def stmt():
             else:
                 print('{:08X}'.format(inst))
     
+    
+    # QUIZ
     elif lookahead=='F5':
         locctr+=4
         if pass1or2==2:
@@ -250,7 +259,7 @@ def rest5(ex):
                 disp = symtable[tokenval].att - locctr # Calc PC
                 if -2048<=disp<=2047:
                     inst+=Pbit3set
-                    inst+=(disp&0xfff) # ------------------- check
+                    inst+=(disp&0xfff)
                 elif baseValue != -1:
                     disp = symtable[tokenval].att - baseValue  # Calc BASE
                     if 0<=disp<=4095:
