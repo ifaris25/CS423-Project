@@ -79,7 +79,7 @@ def parse():
     body()
     if pass1or2==2:
         for list in reLoc:
-            print('M{:06} 05'.format(list))
+            print('M{:06X} 05'.format(list)) # 2 byte and always is 05 for the changing address
     tail()
         
     
