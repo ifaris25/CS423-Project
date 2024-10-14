@@ -1,4 +1,3 @@
-prog start 0x0
-    add xx
-xx  word 5
-    end prog
+main   START  0
+    done RSUB
+END    main

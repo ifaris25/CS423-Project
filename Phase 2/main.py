@@ -14,7 +14,7 @@ symtable = []
 inst=0
 baseValue=-1
 programAddress=0
-Xbit3set = 0x8000
+Xbit3set = 0x8000               
 Bbit3set = 0x4000
 Pbit3set = 0x2000
 Ebit3set = 0x1000
@@ -137,7 +137,7 @@ def rest1():
 
 
 def stmt():
-    # stmt ---> F1 | F2 Reg rest4 | F3 Rest5 | + F3 Rest5   
+    # stmt ---> F1 | F2 Reg rest4 | F3 Rest5(bool) | + F3 Rest5(bool) 
     global locctr,inst,startLine,reLoc
     startLine=False
     if lookahead=='F1':
@@ -171,8 +171,11 @@ def stmt():
         locctr+=3
         if pass1or2==2:
             inst=symtable[tokenval].att <<16 # to get the opcode
-        match('F3')
-        rest5(False)
+        if symtable[tokenval].string == 'RSUB':
+            match('F3')
+        else:
+            match('F3')
+            rest5(False)
         if pass1or2==2:
             if objCode:
                 print('T{:06X} {:02X} {:06X}'.format(locctr-3,3,inst))
@@ -194,35 +197,41 @@ def stmt():
                 print('T{:06X} {:02X} {:08X}'.format(locctr-4,4,inst))
             else:
                 print('{:08X}'.format(inst))
+
+
+    ## Quiz
+    # elif lookahead=='F5':
+    #     locctr+=4
+    #     if pass1or2==2:
+    #         inst=symtable[tokenval].att<<24
+    #     match('F5')
+    #     if pass1or2==2:
+    #         inst+=symtable[tokenval].att<<16
+    #     match('REG')
+    #     match(',')
+    #     if pass1or2==2:
+    #         inst+=symtable[tokenval].att<<8
+    #     match('REG')
+    #     match(',')
+    #     if pass1or2==2:
+    #         inst+=symtable[tokenval].att
+    #     match('REG')
+        
+    #     if pass1or2==2:
+    #         if objCode:
+    #             print('T{:06X} {:02X} {:08X}'.format(locctr-4,4,inst)) # Machine code
+    #         else:
+    #             print('{:08X}'.format(inst)) # Object Code
+
+
+
     
-    
-    # QUIZ
-    elif lookahead=='F5':
-        locctr+=4
-        if pass1or2==2:
-            inst=symtable[tokenval].att<<24
-        match('F5')
-        if pass1or2==2:
-            inst+=symtable[tokenval].att<<16
-        match('REG')
-        match(',')
-        if pass1or2==2:
-            inst+=symtable[tokenval].att<<8
-        match('REG')
-        match(',')
-        if pass1or2==2:
-            inst+=symtable[tokenval].att
-        match('REG')
-        if pass1or2==2:
-            if objCode:
-                print('T{:06X} {:02X} {:08X}'.format(locctr-4,4,inst))
-            else:
-                print('{:08X}'.format(inst))
+
 
     else:
         error('stmt error')
         
-def rest5(ex):
+def rest5(ex): # if ex= true mean F4 .... ex=false mean F3
     # Rest5 --> # Rest6 
     global inst,baseValue
 
@@ -253,7 +262,7 @@ def rest5(ex):
                 inst+=Nbit4set
                 inst+=Ibit4set
                 inst+=symtable[tokenval].att # it is in format 4
-            else:
+            else: # Format 3
                 inst+=Nbit3set
                 inst+=Ibit3set
                 disp = symtable[tokenval].att - locctr # Calc PC
@@ -277,14 +286,14 @@ def rest5(ex):
     elif lookahead=='NUM':
         if pass1or2 == 2:
             if ex:
-                inst += tokenval
                 inst+= Ibit4set
                 inst += Nbit4set
+                inst += tokenval
             else:
                 inst += Ibit3set
                 inst += Nbit3set
-                disp = tokenval - locctr  # Calc PC
-                if 0<disp<4095:
+                disp = tokenval - locctr  # Calc PC    disp = TA - PC
+                if 0<tokenval<4095:
                     inst += (tokenval & 0xFFF)
                 elif -2048 <= disp <= 2047:
                     inst += Pbit3set
