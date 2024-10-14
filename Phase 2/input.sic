@@ -1,3 +1,5 @@
 main   START  0
     done RSUB
+    +ADD	M
+    xx word 5
 END    main
