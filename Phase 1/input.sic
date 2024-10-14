@@ -1,9 +1,4 @@
-prog start 0X100
-    lda xx
-    sta yy,x
-tt byte c'abcd'
-zz byte x'abcd'
-xx  word 5
-yy  resb 2
-xax  word 4
-end prog
+prog start 0X0
+    LDA	xx
+    xx word 3   
+end prog       

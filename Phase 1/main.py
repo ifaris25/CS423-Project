@@ -24,7 +24,7 @@ Bbit3set = 0x4000
 Pbit3set = 0x2000
 Ebit3set = 0x1000
 objCode= True
-
+reLoc=[]
 
 class Entry:
     def __init__(self,string,token,attribute):
@@ -64,8 +64,12 @@ def match(token):
 
 
 def parse():
+    global reLoc
     header()
     body()
+    if pass1or2==2:
+        for list in reLoc:
+            print('M{:06X} 04'.format(list)) # 2 byte and always is 05 for the changing address)
     tail()
 
 
@@ -108,11 +112,13 @@ def rest1():
 
 
 def stmt():
-    global startLine,locctr,inst
+    global startLine,locctr,inst,reLoc
     startLine = False
+    locctr+=3
     if pass1or2==2:
         inst= symtable[tokenval].att << 16
-    locctr+=3
+    if pass1or2==2:
+        reLoc.append(locctr-2) #----------------check
     match('F3')
     rest3()
     if pass1or2==2:
@@ -122,11 +128,12 @@ def stmt():
             print('{:06X}'.format(inst))
 
 def data():
-    global locctr
+    global locctr,reLoc
     if lookahead=="WORD":
         locctr+=3
         match("WORD")
         if pass1or2==2:
+            
             if objCode:
                 print('T{:06X} {:02X} {:06X}'.format(locctr-3,3,tokenval))
             else:
@@ -165,7 +172,7 @@ def rest3():
         error('rest3 error')
 
 def rest2():
-    global locctr
+    global locctr,reLoc
     size = int(len(symtable[tokenval].att)/2)
     locctr+=size
     if lookahead=='STRING':
