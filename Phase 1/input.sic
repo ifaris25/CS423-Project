@@ -1,4 +1,5 @@
-prog start 0X0
-    LDA	xx
-    xx word 3   
-end prog       
+main START  0
+    ADD xx
+    xx word 5
+    ADD xx
+END main

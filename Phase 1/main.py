@@ -24,7 +24,11 @@ Bbit3set = 0x4000
 Pbit3set = 0x2000
 Ebit3set = 0x1000
 objCode= True
-reLoc=[]
+
+
+objBuffer = ''
+maxBuffer = 10
+modifiedBin = ''
 
 class Entry:
     def __init__(self,string,token,attribute):
@@ -62,14 +66,22 @@ def match(token):
         error("match error")
 
 
+def addToBuffer(inst):
+    global maxBuffer, objBuffer,locctr,modifiedBin
+
+    objLeng = int(len(objBuffer)/2)
+    instLeng = int(len(inst) / 2)
+    if (objLeng + instLeng > maxBuffer):
+        final = '{:03X}'.format(int(modifiedBin.ljust(12, '0'), 2))
+        print('T{:06X}|{:02X}|{}|'.format(locctr-objLeng-instLeng,objLeng,final) + objBuffer)
+        modifiedBin = modifiedBin[-1]
+        objBuffer = inst
+    else:
+        objBuffer += inst
 
 def parse():
-    global reLoc
     header()
     body()
-    if pass1or2==2:
-        for list in reLoc:
-            print('M{:06X} 04'.format(list)) # 2 byte and always is 05 for the changing address)
     tail()
 
 
@@ -83,7 +95,7 @@ def header():
     match('NUM')
     progName = symtable[tok].string
     if pass1or2==2 and objCode:
-        print('H',progName,'{:06X} {:06X}'.format(programAddress,programSize))
+        print('H ',progName,'{:06X} {:06X}'.format(programAddress,programSize))
 
 
 
@@ -112,46 +124,59 @@ def rest1():
 
 
 def stmt():
-    global startLine,locctr,inst,reLoc
+    global startLine,locctr,inst,objBuffer,maxBuffer,modifiedBin
     startLine = False
     locctr+=3
     if pass1or2==2:
         inst= symtable[tokenval].att << 16
-    if pass1or2==2:
-        reLoc.append(locctr-2) #----------------check
     match('F3')
     rest3()
     if pass1or2==2:
         if objCode:
-            print('T{:06X} {:02X} {:06X}'.format(locctr-3,3,inst))
+            modifiedBin += '1'
+            addToBuffer('{:06X}'.format(inst))
         else:
             print('{:06X}'.format(inst))
 
 def data():
-    global locctr,reLoc
+    global locctr,objBuffer,maxBuffer,modifiedBin
     if lookahead=="WORD":
         locctr+=3
         match("WORD")
         if pass1or2==2:
-            
             if objCode:
-                print('T{:06X} {:02X} {:06X}'.format(locctr-3,3,tokenval))
+                modifiedBin += '0'
+                addToBuffer('{:06X}'.format(tokenval))
             else:
-                print('T{:06X}'.format(tokenval))
+                print('{:06X}'.format(tokenval))
         match('NUM')
     elif lookahead=='RESW':
         locctr+=3*tokenval
         match('RESW')
-        if pass1or2==2 and not objCode:
-            for i in range(tokenval):
-                print('000000')
-        match("NUM")
+        if pass1or2 == 2:
+            if objCode:
+                objLeng = int(len(objBuffer) / 2)
+                final = '{:03X}'.format(int(modifiedBin, 2))[::-1]
+                objBuffer = 'T{:06X}|{:02X}|{}|'.format(locctr - objLeng-(tokenval*3), objLeng,final) + objBuffer
+                print(objBuffer)
+                objBuffer = ''
+                pass
+            else:
+                for i in range(tokenval):
+                    print('000000')
     elif lookahead == "RESB":
         match("RESB")
         locctr+=tokenval
-        if pass1or2==2 and not objCode:
-            for i in range(tokenval):
-                print('00')
+        if pass1or2 == 2:
+            if objCode:
+                objLeng = int(len(objBuffer) / 2)
+                final = '{:03X}'.format(int(modifiedBin, 2))[::-1]
+                objBuffer = 'T{:06X}|{:02X}|{}|'.format(locctr - objLeng-tokenval, objLeng,final) + objBuffer
+                print(objBuffer)
+                objBuffer = ''
+            else:
+                for i in range(tokenval):
+                    print('00')
         match('NUM')
     elif lookahead == 'BYTE':
         match('BYTE')
@@ -172,20 +197,22 @@ def rest3():
         error('rest3 error')
 
 def rest2():
-    global locctr,reLoc
+    global locctr,objBuffer,maxBuffer,modifiedBin
     size = int(len(symtable[tokenval].att)/2)
     locctr+=size
     if lookahead=='STRING':
         if pass1or2==2:
             if objCode:
-                print('T{:06X} {:02X}'.format(locctr-size,size,hex),symtable[tokenval].att)
+                modifiedBin += '0'
+                addToBuffer(symtable[tokenval].att)
             else:
                 print(symtable[tokenval].att)
         match('STRING')
     elif lookahead=='HEX':
         if pass1or2==2:
             if objCode:
-                print('T{:06X} {:02X}'.format(locctr-size,size,hex),symtable[tokenval].att)
+                modifiedBin += '0'
+                addToBuffer(symtable[tokenval].att)
             else:
                 print(symtable[tokenval].att)
         match('HEX')
@@ -207,9 +234,16 @@ def index():
 
 
 def tail():
-    global programAddress,programSize,locctr
+    global programAddress,programSize,locctr,objBuffer,modifiedBin
     match('END')
-    if pass1or2==2 and objCode:
+    if pass1or2 == 2 and objCode:
+        objLeng = int(len(objBuffer) / 2)
+        if modifiedBin != '':
+            final = '{:03X}'.format(int(modifiedBin.ljust(12, '0'), 2))
+        else:
+            final = '000'
+        objBuffer = 'T{:06X}|{:02X}|{}|'.format(locctr - objLeng, objLeng,final) + objBuffer
+        print(objBuffer)
         print('E{:06X}'.format(symtable[tokenval].att))
     match('ID')
     programSize = locctr-programAddress
