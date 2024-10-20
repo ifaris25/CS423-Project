@@ -90,7 +90,8 @@ def parse():
 
 def header():
     # header ---> id start num
-    global lookahead,tokenval,locctr,startAddress,progSize
+    global lookahead,tokenval,locctr,startAddress,progSize,block
+    block=0 
     lookahead= lexan()
     tok=tokenval
     match('ID')
@@ -133,11 +134,15 @@ def body():
     
         
 def rest7():
+    global block
     if lookahead=='CDATA':
+        block=1
         match('CDATA')
     elif lookahead=='CBLKS':
+        block=2
         match('CBLKS')
     elif lookahead in ['ID','BASE','USE','F1','F2','F3','+','F5','END']: # deal with epsilon
+        block=0
         return
     else:
         error('Rest7 sytntax error')

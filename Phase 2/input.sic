@@ -1,8 +1,8 @@
-main   START  0
+main   START  0x100
     +ADD	xx
     USE
     +LDA	xx
     USE CDATA
     xx word 5
-    USE CBLKS
+
 END    main
