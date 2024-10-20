@@ -1,5 +1,8 @@
 main   START  0
-    done RSUB
-    +ADD	M
+    +ADD	xx
+    USE
+    +LDA	xx
+    USE CDATA
     xx word 5
+    USE CBLKS
 END    main

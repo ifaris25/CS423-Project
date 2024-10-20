@@ -119,13 +119,26 @@ def body():
     elif lookahead in ['F1','F2','F3','+','F5']:
         stmt()
         body()
+    elif lookahead=='USE':
+        match('USE')
+        rest7()
+        body()
+        
     elif lookahead=='END':
         return
     else:
         error('body error')
     
         
-
+def rest7():
+    if lookahead=='CDATA':
+        match('CDATA')
+    elif lookahead=='CBLKS':
+        match('CBLKS')
+    elif lookahead in ['ID','BASE','USE','F1','F2','F3','+','F5','END']: # deal with epsilon
+        return
+    else:
+        error('Rest7 sytntax error')
 
 def rest1():
     if lookahead in['F1','F2','F3','+']:
