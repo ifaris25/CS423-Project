@@ -37,10 +37,11 @@ objCode= True
 reLoc=[] 
 
 class Entry:
-    def __init__(self,string,token,attribute):
+    def __init__(self,string,token,attribute,block):
         self.string=string
         self.token=token
         self.att=attribute
+        self.block=block
 
 def lookup(s):
     for i in range(0,symtable.__len__()):
@@ -48,8 +49,8 @@ def lookup(s):
             return i
     return -1
 
-def insert(s,t,a):
-    symtable.append(Entry(s,t,a))
+def insert(s,t,a,b=0):
+    symtable.append(Entry(s,t,a,b))
     return symtable.__len__()-1
 
 def init():
