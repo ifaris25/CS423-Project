@@ -7,7 +7,6 @@ tokenval = 0
 lineno = 1
 progSize=0
 pass1or2 = 1
-locctr = 0
 lookahead = ''
 startLine = True
 symtable = []
@@ -36,6 +35,8 @@ objCode= True
 
 reLoc=[] 
 
+locctr = [0,0,0]
+block = 0
 class Entry:
     def __init__(self,string,token,attribute,block):
         self.string=string
@@ -94,7 +95,7 @@ def header():
     tok=tokenval
     match('ID')
     match('START')
-    startAddress=symtable[tok].att=locctr=tokenval
+    startAddress=symtable[tok].att=locctr[block]=tokenval
     match('NUM')
     progName=symtable[tok].string
     if pass1or2==2 and objCode:
@@ -155,18 +156,18 @@ def stmt():
     global locctr,inst,startLine,reLoc
     startLine=False
     if lookahead=='F1':
-        locctr += 1
+        locctr[block] += 1
         if pass1or2==2:
             inst=symtable[tokenval].att
             if objCode:
-                print('T{:06X} {:02X} {:02X}'.format(locctr-1,1,inst))
+                print('T{:06X} {:02X} {:02X}'.format(locctr[block]-1,1,inst))
             else:
                 print('{:02X}'.format(inst))
         match('F1')
     
     
     elif lookahead=='F2':
-        locctr+=2
+        locctr[block]+=2
         if pass1or2==2:
             inst=symtable[tokenval].att<<8
         match('F2')
@@ -176,13 +177,13 @@ def stmt():
         rest4()
         if pass1or2==2:
             if objCode:
-                print('T{:06X} {:02X} {:04X}'.format(locctr-2,2,inst))
+                print('T{:06X} {:02X} {:04X}'.format(locctr[block]-2,2,inst))
             else:
                 print('{:04X}'.format(inst))
                 
                 
     elif lookahead=='F3':
-        locctr+=3
+        locctr[block]+=3
         if pass1or2==2:
             inst=symtable[tokenval].att <<16 # to get the opcode
         if symtable[tokenval].string == 'RSUB':
@@ -192,30 +193,30 @@ def stmt():
             rest5(False)
         if pass1or2==2:
             if objCode:
-                print('T{:06X} {:02X} {:06X}'.format(locctr-3,3,inst))
+                print('T{:06X} {:02X} {:06X}'.format(locctr[block]-3,3,inst))
             else:
                 print('{:06X}'.format(inst))
         
         
     elif lookahead=='+':
-        locctr+=4
+        locctr[block]+=4
         match('+')
         if pass1or2==2:
             inst=symtable[tokenval].att<<24
             inst += Ebit4set
-            reLoc.append(locctr-3)   ### check --------------------------------
+            reLoc.append(locctr[block]-3)   ### check --------------------------------
         match('F3')
         rest5(True)
         if pass1or2==2:
             if objCode:
-                print('T{:06X} {:02X} {:08X}'.format(locctr-4,4,inst))
+                print('T{:06X} {:02X} {:08X}'.format(locctr[block]-4,4,inst))
             else:
                 print('{:08X}'.format(inst))
 
 
     ## Quiz
     # elif lookahead=='F5':
-    #     locctr+=4
+    #     locctr[block]+=4
     #     if pass1or2==2:
     #         inst=symtable[tokenval].att<<24
     #     match('F5')
@@ -233,7 +234,7 @@ def stmt():
         
     #     if pass1or2==2:
     #         if objCode:
-    #             print('T{:06X} {:02X} {:08X}'.format(locctr-4,4,inst)) # Machine code
+    #             print('T{:06X} {:02X} {:08X}'.format(locctr[block]-4,4,inst)) # Machine code
     #         else:
     #             print('{:08X}'.format(inst)) # Object Code
 
@@ -279,7 +280,7 @@ def rest5(ex): # if ex= true mean F4 .... ex=false mean F3
             else: # Format 3
                 inst+=Nbit3set
                 inst+=Ibit3set
-                disp = symtable[tokenval].att - locctr # Calc PC
+                disp = symtable[tokenval].att - locctr[block] # Calc PC
                 if -2048<=disp<=2047:
                     inst+=Pbit3set
                     inst+=(disp&0xfff)
@@ -306,7 +307,7 @@ def rest5(ex): # if ex= true mean F4 .... ex=false mean F3
             else:
                 inst += Ibit3set
                 inst += Nbit3set
-                disp = tokenval - locctr  # Calc PC    disp = TA - PC
+                disp = tokenval - locctr[block]  # Calc PC    disp = TA - PC
                 if 0<tokenval<4095:
                     inst += (tokenval & 0xFFF)
                 elif -2048 <= disp <= 2047:
@@ -351,7 +352,7 @@ def rest6(ex):
             if ex:
                 inst += symtable[tokenval].att # it is in format 4
             else:
-                disp = symtable[tokenval].att - locctr
+                disp = symtable[tokenval].att - locctr[block]
                 if -2048<=disp<=2047:
                     inst+=Pbit3set
                     inst += (disp & 0xFFF)
@@ -375,7 +376,7 @@ def rest6(ex):
             else:
                 inst += Ibit3set
                 inst += Nbit3set
-                disp = tokenval - locctr
+                disp = tokenval - locctr[block]
                 if 0 < tokenval < 4095:
                     inst += (tokenval & 0xFFF)
                 elif -2048 <= disp <= 2047:
@@ -412,18 +413,18 @@ def tail():
     if pass1or2==2 and objCode:
         print('E{:06X}'.format(symtable[tokenval].att))
     match('ID')
-    progSize= locctr-startAddress
+    progSize= locctr[0]+locctr[1]+locctr[2]-startAddress
 
 
 
 def data():
     global locctr
     if lookahead=="WORD":
-        locctr+=3
+        locctr[block]+=3
         match("WORD")
         if pass1or2==2:
             if objCode:
-                print('T{:06X} {:02X} {:06X}'.format(locctr-3,3,tokenval))
+                print('T{:06X} {:02X} {:06X}'.format(locctr[block]-3,3,tokenval))
             else:
                 print('T{:06X}'.format(tokenval))
         match('NUM')
@@ -432,11 +433,11 @@ def data():
         if pass1or2==2 and not objCode:
             for i in range(tokenval):
                 print('000000')
-        locctr+=3*tokenval
+        locctr[block]+=3*tokenval
         match("NUM")
     elif lookahead == "RESB":
         match("RESB")
-        locctr+=tokenval
+        locctr[block]+=tokenval
         if pass1or2==2 and not objCode:
             for i in range(tokenval):
                 print('00')
@@ -450,18 +451,18 @@ def data():
 def rest2():
     global locctr
     size = int(len(symtable[tokenval].att)/2)
-    locctr+=size
+    locctr[block]+=size
     if lookahead=='STRING':
         if pass1or2==2:
             if objCode:
-                print('T{:06X} {:02X}'.format(locctr-size,size,hex),symtable[tokenval].att)
+                print('T{:06X} {:02X}'.format(locctr[block]-size,size,hex),symtable[tokenval].att)
             else:
                 print(symtable[tokenval].att)
         match('STRING')
     elif lookahead=='HEX':
         if pass1or2==2:
             if objCode:
-                print('T{:06X} {:02X}'.format(locctr-size,size,hex),symtable[tokenval].att)
+                print('T{:06X} {:02X}'.format(locctr[block]-size,size,hex),symtable[tokenval].att)
             else:
                 print(symtable[tokenval].att)
         match('HEX')
@@ -550,12 +551,12 @@ def lexan():
             p=lookup(filecontent[bufferindex].upper())
             if p == -1:
                 if startLine == True:
-                    p=insert(filecontent[bufferindex].upper(),'ID',locctr) # should we deal with case-sensitive?
+                    p=insert(filecontent[bufferindex].upper(),'ID',locctr[block]) # should we deal with case-sensitive?
                 else:
                     p=insert(filecontent[bufferindex].upper(),'ID',-1) #forward reference
             else:
                 if (symtable[p].att == -1) and (startLine == True):
-                    symtable[p].att = locctr
+                    symtable[p].att = locctr[block]
             tokenval = p
             # del filecontent[bufferindex]
             bufferindex = bufferindex + 1
@@ -592,7 +593,7 @@ def main():
     for pass1or2 in range(1,3):
         parse()
         bufferindex = 0
-        locctr = 0
+        locctr = [0,0,0]
         lineno = 1
 
     file.close()
