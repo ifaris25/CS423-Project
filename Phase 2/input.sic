@@ -1,8 +1,10 @@
-main   START  0x100
-    +ADD	xx
-    USE
-    +LDA	xx
-    USE CDATA
-    xx word 5
-
-END    main
+prog start 0x0
+use
+yy  word 3
+use CBLKS
+xx  word 3
+use CDATA
+xb  word 4
+use 
+yy  word 3
+end prog

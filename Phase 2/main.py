@@ -37,6 +37,10 @@ reLoc=[]
 
 locctr = [0,0,0]
 block = 0
+
+
+locctr_size=[0,0,0]
+
 class Entry:
     def __init__(self,string,token,attribute,block):
         self.string=string
@@ -76,13 +80,20 @@ def match(token):
 
 def parse():
     # parse ---> header body  tail
-    global reLoc
+    global reLoc,symtable
     header()
     body()
     if pass1or2==2:
         for list in reLoc:
             print('M{:06X} 05'.format(list)) # 2 byte and always is 05 for the changing address
+ 
+    
+    
+            
     tail()
+    # if pass1or2==1:
+    #     for sy in symtable:
+    #         print(sy.string,' ',sy.token,' ',sy.att,' ',sy.block)
         
     
   
@@ -105,8 +116,9 @@ def header():
 
 def body():
     # body ---> id rest1 body | stmt body | &
-    global baseValue,startLine
+    global baseValue,startLine,block
     if lookahead=='ID':
+        symtable[tokenval].block=block
         match("ID")
         rest1()
         body()
@@ -134,12 +146,14 @@ def body():
     
         
 def rest7():
-    global block
+    global block,locctr
     if lookahead=='CDATA':
         block=1
+        
         match('CDATA')
     elif lookahead=='CBLKS':
         block=2
+        
         match('CBLKS')
     elif lookahead in ['ID','BASE','USE','F1','F2','F3','+','F5','END']: # deal with epsilon
         block=0
@@ -158,12 +172,13 @@ def rest1():
 
 def stmt():
     # stmt ---> F1 | F2 Reg rest4 | F3 Rest5(bool) | + F3 Rest5(bool) 
-    global locctr,inst,startLine,reLoc
+    global locctr,inst,startLine,reLoc,block
     startLine=False
     if lookahead=='F1':
         locctr[block] += 1
         if pass1or2==2:
             inst=symtable[tokenval].att
+
             if objCode:
                 print('T{:06X} {:02X} {:02X}'.format(locctr[block]-1,1,inst))
             else:
@@ -175,6 +190,7 @@ def stmt():
         locctr[block]+=2
         if pass1or2==2:
             inst=symtable[tokenval].att<<8
+            
         match('F2')
         if pass1or2==2:
             inst+=symtable[tokenval].att<<4
@@ -191,6 +207,7 @@ def stmt():
         locctr[block]+=3
         if pass1or2==2:
             inst=symtable[tokenval].att <<16 # to get the opcode
+            
         if symtable[tokenval].string == 'RSUB':
             match('F3')
         else:
@@ -413,14 +430,26 @@ def rest4():
 
 def tail():
     # end id
-    global startAddress,progSize,locctr
+    global startAddress,progSize,locctr,locctr_size
     match('END')
     if pass1or2==2 and objCode:
         print('E{:06X}'.format(symtable[tokenval].att))
     match('ID')
+
+
+
     progSize= locctr[0]+locctr[1]+locctr[2]-startAddress
-
-
+    locctr_size[0]=locctr[0]
+    locctr_size[1]=locctr[0]   
+    locctr_size[2]=locctr_size[1]+locctr[1]
+    # defaultSize = locctr[0]
+    # cdataSize = locctr[1]
+    # cblckSize = locctr[2]
+    for t in symtable:
+        if t.block==1:
+            t.att=locctr[0]+t.att
+        if t.block==2:
+            t.att=locctr[0]+locctr[1]+t.att
 
 def data():
     global locctr
@@ -598,7 +627,7 @@ def main():
     for pass1or2 in range(1,3):
         parse()
         bufferindex = 0
-        locctr = [0,0,0]
+        locctr = locctr_size
         lineno = 1
 
     file.close()
