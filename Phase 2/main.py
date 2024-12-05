@@ -93,7 +93,7 @@ def parse():
     tail()
     # if pass1or2==1:
     #     for sy in symtable:
-    #         print(sy.string,' ',sy.token,' ',sy.att,' ',sy.block)
+            # print(sy.string,' ',sy.token,' ',sy.att,' ',sy.block)
         
     
   
@@ -393,13 +393,13 @@ def rest6(ex):
         if pass1or2 == 2:
             if ex:
                 inst += tokenval
-                inst += Ibit4set
-                inst += Nbit4set
+                # inst += Ibit4set
+                # inst += Nbit4set
             else:
-                inst += Ibit3set
-                inst += Nbit3set
+                # inst += Ibit3set
+                # inst += Nbit3set
                 disp = tokenval - locctr[block]
-                if 0 < tokenval < 4095:
+                if 0 <= tokenval <= 4095:
                     inst += (tokenval & 0xFFF)
                 elif -2048 <= disp <= 2047:
                     inst += Pbit3set
@@ -611,7 +611,7 @@ def main():
     global file, filecontent, locctr, pass1or2, bufferindex, lineno
     init()
     w = file.read()
-    filecontent=re.split("([\W])", w)
+    filecontent=re.split(r"([\W])", w)
     i=0
     while True:
         while (filecontent[i] == ' ') or (filecontent[i] == '') or (filecontent[i] == '\t'):
