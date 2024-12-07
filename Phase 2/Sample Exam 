@@ -1,0 +1,55 @@
+# def rest33():
+#     global inst
+#     if lookahead=='REG':
+#         inst+= 0x0<<24
+#         inst+= symtable[tokenval].att << 16 
+#         match('REG')
+#         match(',')
+#         disp = symtable[tokenval].att - locctr[block] # Calc PC
+#         if -2048<=disp<=2047:
+#             inst+=Pbit4set
+#             inst+=(disp&0xfff)
+#         elif baseValue != -1:
+#             disp = symtable[tokenval].att - baseValue  # Calc BASE
+#             if 0<=disp<=4095:
+#                 inst += Bbit4set
+#                 inst += disp
+#             else:
+#                 error("BASE can not handle the value")
+#         else:
+#             error("No BASE")
+#         match('ID')
+#         index(True)
+#     elif lookahead=='ID':
+#         inst+=0x1<<24
+#         disp = symtable[tokenval].att - locctr[block] # Calc PC
+#         if -2048<=disp<=2047:
+#             inst+=Pbit4set
+#             inst+=(disp&0xfff)<<4
+#         elif baseValue != -1:
+#             disp = symtable[tokenval].att - baseValue  # Calc BASE
+#             if 0<=disp<=4095:
+#                 inst += Bbit4set
+#                 inst += disp<<4
+#             else:
+#                 error("BASE can not handle the value")
+#         else:
+#             error("No BASE")
+#         match('ID')
+#         match(',')
+#         inst+=symtable[tokenval].att
+#         match('REG')
+#         index(True)
+
+
+
+# elif lookahead=='F5':
+    #     locctr[block]+=4
+    #     inst = symtable[tokenval].att<<24
+    #     match('F5')
+    #     rest33()
+    #     if pass1or2==2:
+    #         if objCode:
+    #             print('T{:06X} {:02X} {:08X}'.format(locctr[block]-4,4,inst))
+    #         else:
+    #             print('{:06X}'.format(inst))
