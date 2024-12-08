@@ -1,10 +1,6 @@
-prog start 0x0
-use
-yy  word 3
-use CBLKS
-xx  word 3
-use CDATA
-xb  word 4
-use 
-yy  word 3
-end prog
+MTest START 0
+madd S,Y,X
+OUTLP msub Z,S 
+Y word 3 
+Z word 1 
+END OUTLP

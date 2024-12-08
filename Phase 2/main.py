@@ -131,7 +131,7 @@ def body():
         match('ID')
         body()
         
-    elif lookahead in ['F1','F2','F3','+','F5']:
+    elif lookahead in ['F1','F2','F3','+','F7']:
         stmt()
         body()
     elif lookahead=='USE':
@@ -162,7 +162,7 @@ def rest7():
         error('Rest7 sytntax error')
 
 def rest1():
-    if lookahead in['F1','F2','F3','+']:
+    if lookahead in['F1','F2','F3','+','F7']:
         stmt()
     elif lookahead in ["WORD", "BYTE", "RESW", "RESB"]:
         data()
@@ -234,6 +234,21 @@ def stmt():
                 print('T{:06X} {:02X} {:08X}'.format(locctr[block]-4,4,inst))
             else:
                 print('{:08X}'.format(inst))
+    
+    
+    
+    elif lookahead=='F7':
+        locctr[block]+=4
+        if pass1or2==2:
+            inst= symtable[tokenval].att<<24
+        match('F7')
+        rest33()
+        if pass1or2==2:
+            if objCode:
+                print('T{:06X} {:02X} {:08X}'.format(locctr[block]-4,4,inst))
+            else:
+                print('{:08X}'.format(inst))
+
 
 
     ## Quiz
@@ -268,6 +283,43 @@ def stmt():
     else:
         error('stmt error')
         
+
+def rest33():
+    global inst
+    if lookahead=='REG':
+        inst+=0x0<<24
+        inst+=symtable[tokenval].att<<16
+        match('REG')
+        match(',')
+        disp = symtable[tokenval].att - locctr[block] # Calc PC
+        if -2048<=disp<=2047:
+            inst+=Pbit4set
+            inst+=(disp&0xFFF)
+        else:
+            error('PC can not handle the address')
+        match('ID')
+        index(True)
+    elif lookahead=='ID':
+        inst+= 0x1<<24
+        disp = symtable[tokenval].att - locctr[block] # Calc PC
+        if -2048<=disp<=2047:
+            inst+=Pbit4set
+            inst+=(disp&0xFFF)<<4
+        else:
+            error('PC can not handle the address')
+        
+        match('ID')
+        match(',')
+        inst+=symtable[tokenval].att
+        match('REG')
+        index(True)
+    else:
+        error('rest33 error')
+
+
+
+
+
 def rest5(ex): # if ex= true mean F4 .... ex=false mean F3
     # Rest5 --> # Rest6 
     global inst,baseValue
@@ -530,7 +582,7 @@ def lexan():
         # del filecontent[bufferindex]
         bufferindex = bufferindex + 1
         return ('NUM')
-    elif filecontent[bufferindex] in ['+', '#', ',','@']:
+    elif filecontent[bufferindex] in ['+', '#', ',','@','*']:
         c = filecontent[bufferindex]
         # del filecontent[bufferindex]
         bufferindex = bufferindex + 1
